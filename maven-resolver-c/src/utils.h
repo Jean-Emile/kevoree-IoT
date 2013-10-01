@@ -15,6 +15,20 @@ int indexOf_shift (const char* base,const char* str, int startIndex);
 int lastIndexOf (const char* base,const  char* str);
 char * str_tolower(char *string);
 char * str_replace ( const char *string, const char *substr, const char *replacement );
+boolean file_exists(const char * filename);
+
+
+boolean file_exists(const char * filename)
+{
+	FILE * file;
+	file = fopen(filename, "r");
+    if (file)
+    {
+        fclose(file);
+        return true;
+    }
+    return false;
+}
 
 
 
