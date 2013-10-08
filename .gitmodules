@@ -1,3 +1,0 @@
-[submodule "org.kevoree.iot.firmware/src/main/c/contiki"]
-	path = org.kevoree.iot.firmware/src/main/c/contiki
-	url = https://github.com/contiki-os/contiki.git
