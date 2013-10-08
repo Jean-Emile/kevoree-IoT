@@ -1,0 +1,24 @@
+ {
+addRepo "http://maven.kevoree.org/archiva/repository/daum/snapshots"
+addRepo "http://repo.maven.apache.org/maven2"
+addRepo "http://maven.kevoree.org/daum/release"
+addRepo "https://maven.itm.uni-luebeck.de/content/repositories/releases/"
+addRepo "http://repository.jetbrains.com/all"
+addRepo "https://oss.sonatype.org/content/groups/public/"
+addRepo "https://oss.sonatype.org/content/repositories/snapshots"
+addRepo "https://github.com/mkovatsc/maven/raw/master/thirdparty/"
+addRepo "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+addRepo "https://github.com/mkovatsc/maven/raw/master/releases/"
+addRepo "https://github.com/mkovatsc/maven/raw/master/snapshots/"
+merge 'mvn:org.kevoree.corelibrary.javase/org.kevoree.library.javase.javaseNode/2.0.2'
+merge 'mvn:org.kevoree.iot/org.kevoree.iot.coap/1.0-SNAPSHOT'
+merge 'mvn:org.kevoree.corelibrary.javase/org.kevoree.library.javase.jexxus/2.0.2'
+addNode node0:JavaSENode
+ {
+  addComponent IoTServer893@node0 : IoTServerComponent {port='8080'}
+updateDictionary IoTServer893@node0
+}
+
+addGroup group1862789617:BasicGroup
+addToGroup group1862789617 node0
+}
