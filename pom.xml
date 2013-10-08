@@ -9,7 +9,7 @@
     <version>1.0-SNAPSHOT</version>
 
     <modules>
-        <module>./org.kevoree.iot.coapserver</module>
+        <module>./org.kevoree.iot.coap</module>
         <module>./org.kevoree.iot.modelTransform</module>
         <module>./org.kevoree.iot.firmware</module>
     </modules>

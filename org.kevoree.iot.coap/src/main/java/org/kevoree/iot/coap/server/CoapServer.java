@@ -1,16 +1,10 @@
-package org.kevoree.iot.coapserver;
+package org.kevoree.iot.coap.server;
 
-import ch.ethz.inf.vs.californium.coap.GETRequest;
-import ch.ethz.inf.vs.californium.coap.registries.CodeRegistry;
-import ch.ethz.inf.vs.californium.coap.registries.MediaTypeRegistry;
 import ch.ethz.inf.vs.californium.endpoint.ServerEndpoint;
-import ch.ethz.inf.vs.californium.endpoint.resources.LocalResource;
-import org.kevoree.iot.coapserver.coap_ressources.MavenResolverResource;
+import org.kevoree.iot.coap.server.services.MavenResolverResource;
 
 
 import java.net.SocketException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Created with IntelliJ IDEA.

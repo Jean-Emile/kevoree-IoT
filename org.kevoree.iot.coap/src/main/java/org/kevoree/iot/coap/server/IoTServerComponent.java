@@ -1,11 +1,9 @@
-package org.kevoree.iot.coapserver;
+package org.kevoree.iot.coap.server;
 
 import org.kevoree.annotation.*;
 import org.kevoree.framework.AbstractComponentType;
 
 import java.net.SocketException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  * Created with IntelliJ IDEA.

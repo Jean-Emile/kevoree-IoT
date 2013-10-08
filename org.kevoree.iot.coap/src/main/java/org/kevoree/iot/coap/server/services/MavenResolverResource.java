@@ -1,6 +1,5 @@
-package org.kevoree.iot.coapserver.coap_ressources;
+package org.kevoree.iot.coap.server.services;
 
-import ch.ethz.inf.vs.californium.coap.BlockOption;
 import ch.ethz.inf.vs.californium.coap.GETRequest;
 import ch.ethz.inf.vs.californium.coap.registries.CodeRegistry;
 import ch.ethz.inf.vs.californium.coap.registries.MediaTypeRegistry;

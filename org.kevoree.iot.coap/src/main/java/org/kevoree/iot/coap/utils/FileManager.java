@@ -11,7 +11,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.kevoree.iot.coapserver.utils;
+package org.kevoree.iot.coap.utils;
 
 import java.io.*;
 import java.util.ArrayList;
