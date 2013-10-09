@@ -55,7 +55,7 @@ object TesterParser extends App {
 
     val parser =new KevsParser();
 
-     val oscript = parser.parseScript("{" + ParserUtil.loadFile("/home/jed/KEVOREE_PROJECT/kevoree-IoT/org.kevoree.iot.modelTransform/src/resources/model.kev") + "}");
+     val oscript = parser.parseScript("{" + ParserUtil.loadFile("/home/jed/KEVOREE_PROJECT/kevoree-IoT/org.kevoree.iot.org.kevoree.iot.marShellContikiTransform/src/resources/model.kev") + "}");
 
       ModelTransform.generateKevScriptCompressed(oscript.get,"node0");
 
