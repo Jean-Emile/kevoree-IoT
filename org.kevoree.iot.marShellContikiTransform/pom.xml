@@ -1,0 +1,99 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.kevoree.iot</groupId>
+    <artifactId>org.kevoree.iot.marShellContikiTransform</artifactId>
+    <name>Kevoree :: IoT :: marShellContikiTransform</name>
+    <version>1.0-SNAPSHOT</version>
+
+
+    <parent>
+        <groupId>org.kevoree.iot</groupId>
+        <artifactId>org.kevoree.iot.root</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <properties>
+        <kevoree.version>2.0.8</kevoree.version>
+        <kevoree.mavenresolver>1</kevoree.mavenresolver>
+        <californium.version>0.13.6</californium.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+
+    <dependencies>
+        <dependency>
+            <groupId>org.scala-lang</groupId>
+            <artifactId>scala-library</artifactId>
+            <version>${scala.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.kevoree</groupId>
+            <artifactId>org.kevoree.model</artifactId>
+            <version>${kevoree.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.kevoree.tools</groupId>
+            <artifactId>org.kevoree.tools.marShell</artifactId>
+            <version>${kevoree.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.kevoree</groupId>
+            <artifactId>org.kevoree.adaptation.model</artifactId>
+            <version>${kevoree.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.kevoree</groupId>
+            <artifactId>org.kevoree.kompare</artifactId>
+            <version>${kevoree.version}</version>
+        </dependency>
+    </dependencies>
+
+
+
+    <build>
+        <plugins>
+            <!-- Scala plugin : allow to compile Scala file -->
+            <plugin>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>scala-compile-first</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                            <goal>compile</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>scala-test-compile</id>
+                        <phase>process-test-resources</phase>
+                        <goals>
+                            <goal>testCompile</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <jvmArgs>
+                        <jvmArg>-Xms64m</jvmArg>
+                        <jvmArg>-Xmx1024m</jvmArg>
+                    </jvmArgs>
+                    <args>
+                        <arg>-optimize</arg>
+                        <arg>-Yinline</arg>
+                        <arg>-Ydead-code</arg>
+                        <arg>-Yclosure-elim</arg>
+                    </args>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+
+
+</project>

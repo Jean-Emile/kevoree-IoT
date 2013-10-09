@@ -12,7 +12,7 @@ import org.kevoree.tools.marShell.ast.UpdateDictionaryStatement
 import org.kevoree.tools.marShell.ast.Script
 import scala.Some
 
-object AdaptationModelWrapper {
+object AdaptationModelTransform {
 
   def generateScriptFromAdaptModel(model: AdaptationModel): Script = {
     var statments = List[Statment]()

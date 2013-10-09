@@ -22,7 +22,7 @@ import org.kevoree.log.Log
 
 
 
-object KevScriptWrapper {
+object ModelTransform {
 
   val paramSep = ":"
   val instrSep = "/"
@@ -46,7 +46,7 @@ object KevScriptWrapper {
     var rt  : Boolean = false
     try
     {
-      val parser = new ParserPush()
+      val parser = new Parser()
       val result = parser.parseAdaptations(cscript)
       var checksum : Long = 0
 
@@ -122,7 +122,7 @@ object KevScriptWrapper {
     var statments = new scala.collection.mutable.ListBuffer[Statment]
     var blocks = new HashSet[TransactionalBloc]
     try {
-      val parser = new ParserPush()
+      val parser = new Parser()
       val result = parser.parseAdaptations(cscript)
 
       val nodeName = result.nodeName
@@ -132,6 +132,8 @@ object KevScriptWrapper {
       if (result.definitions != None)
       {
         result.adaptations.toArray.foreach(s => {
+
+
           s match {
             case classOf: UDI => {
               // UpdateDictionaryStatement
@@ -258,6 +260,7 @@ object KevScriptWrapper {
       block =>
         block.l.foreach {
           statement =>
+
             statement match {
               case s: UpdateDictionaryStatement => {
                 if (!firstStatment) {
@@ -320,6 +323,27 @@ object KevScriptWrapper {
                 }
                 firstStatment = false
                 content append Op.RBI_C + paramSep + s.cid.componentInstanceName + paramSep + s.bindingInstanceName + paramSep + s.portName
+              }
+
+              case s: AddRepoStatment => {
+                content append Op.ADD_REPO + paramSep +s.url
+              }
+
+
+              case s : AddNodeStatment => {
+                content append Op.ADD_NODE + paramSep +s.nodeName+ paramSep + s.nodeTypeName
+              }
+
+              case s: AddGroupStatment => {
+                content append Op.ADD_GROUP + paramSep +s.groupName+ paramSep + s.groupTypeName+paramSep+AstHelper.toStringDictionary(s.dictionary)
+              }
+              case s: AddToGroupStatement => {
+                content append Op.ADD_GROUP + paramSep +s.groupName+ paramSep + s.nodeName
+              }
+
+              case s: MergeStatement => {
+                content append Op.MERGE +paramSep + s.url
+
               }
               case _@s => Log.warn("Uncatch " + s) //DO NOTHING FOR OTHER STATEMENT
             }

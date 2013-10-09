@@ -1,0 +1,29 @@
+ {
+addRepo "http://maven.kevoree.org/archiva/repository/daum/snapshots"
+addRepo "http://repo.maven.apache.org/maven2"
+addRepo "http://maven.kevoree.org/daum/release"
+addRepo "https://maven.itm.uni-luebeck.de/content/repositories/releases/"
+addRepo "http://repository.jetbrains.com/all"
+addRepo "https://oss.sonatype.org/content/groups/public/"
+addRepo "https://oss.sonatype.org/content/repositories/snapshots"
+addRepo "https://github.com/mkovatsc/maven/raw/master/thirdparty/"
+addRepo "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+addRepo "https://github.com/mkovatsc/maven/raw/master/releases/"
+addRepo "https://github.com/mkovatsc/maven/raw/master/snapshots/"
+merge 'mvn:org.kevoree.iot/org.kevoree.iot.contikiNode/1.0-SNAPSHOT'
+merge 'mvn:org.kevoree.iot/org.kevoree.iot.fake/1.0-SNAPSHOT'
+addNode node0:ContikiNode
+updateDictionary node0{borderrouter="aaaa::1"}
+addNode node4:ContikiNode
+addNode node2:ContikiNode
+addNode node3:ContikiNode
+
+  addComponent FakeCompo221@node0 : FakeComponent {borderrouter='aaaa::1'}
+updateDictionary FakeCompo221@node0 
+
+addGroup group1706717330:ContikiGroup
+addToGroup group1706717330 node0
+addToGroup group1706717330 node4
+addToGroup group1706717330 node2
+addToGroup group1706717330 node3
+}

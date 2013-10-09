@@ -14,9 +14,9 @@ import collection.JavaConversions._
  * Time: 16:57
  **/
 
-class ParserPush extends StandardTokenParsers {
+class Parser extends StandardTokenParsers {
 
-  lexical.delimiters ++= List("/", ":", ",", "=", "{", "}", "@","+","!","*")
+  lexical.delimiters ++= List("/",":", ",", "=", "{", "}", "@","+","!","*")
 
 
   def operation = numericLit ^^ {
@@ -43,6 +43,9 @@ class ParserPush extends StandardTokenParsers {
   def propertie = ident ^^ {
     case s => s
   }
+  def repo = ident ^^ {
+    case s => s
+  }
 
 
   def portID = ident ^^ {
@@ -59,6 +62,16 @@ class ParserPush extends StandardTokenParsers {
 
   def portIDB = numericLit ^^ {
     case s => s
+  }
+
+
+  def OP_ADD_REPO = numericLit ^^ {
+    case s =>
+      if(s.toString.equals(Op.ADD_GROUP)){
+     true
+      }   else {
+        false
+      }
   }
 
   def checksum = numericLit ^^ {
@@ -107,6 +120,9 @@ class ParserPush extends StandardTokenParsers {
     case a ~ _ ~ b ~ _ ~ c => new RBI(a, b, c.toInt)
   }
 
+  def parseADD_REPO: Parser[Adaptation] = OP_ADD_REPO~ ":" ~ repo  ^^ {
+    case  _ ~ _ ~ repo => new ADD_REPO(repo)
+  }
 
   //    "period:serialport,period:serialport,Timer:SerialCT,tick/ " +
   def parseGlobalDefinitions: Parser[GlobalDefintions] = rep1sep(propertie, ":") ~ opt(":") ~ "," ~ rep1sep(propertie, ":") ~ opt(":") ~ "," ~ rep1sep(propertie, ":") ~ opt(":") ~ "/" ^^ {
@@ -116,7 +132,7 @@ class ParserPush extends StandardTokenParsers {
   }
 
   //  global
-  def requestParse: Parser[Adaptations] = nodeName ~ ":" ~ nodeTypeName ~ "@" ~ "{" ~ opt(parseGlobalDefinitions) ~ repsep(( parseABI | parseUDI | parseAIN | parseRIN ), "/") ~ opt("/") ~ "}" ~ "+" ~checksum~ "!" ^^ {
+  def requestParse: Parser[Adaptations] = nodeName ~ ":" ~ nodeTypeName ~ "@" ~ "{" ~ opt(parseGlobalDefinitions) ~ repsep(parseADD_REPO , "/") ~ opt("/") ~ "}" ~ "+" ~checksum~ "!" ^^ {
     case nodename ~ _ ~ nodeTypeName ~ _ ~ _ ~ definitions ~ adaptations ~ _ ~ _~ _ ~ checksum~ _=> new Adaptations(nodename, nodeTypeName, definitions, adaptations,checksum.toLong)
   }
 
