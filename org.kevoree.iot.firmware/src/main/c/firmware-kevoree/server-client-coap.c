@@ -155,6 +155,7 @@ RESOURCE(getModel, METHOD_GET | METHOD_PUT, "models", "tile=\"GET: ?modelname=\"
 int32_t strAcc = 0;
 int32_t length = 0;
 int32_t length2 = 0;
+uint16_t pref_size = 0;
 void
 getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
@@ -215,24 +216,28 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                 /* Generate data until reaching CHUNKS_TOTAL.*/
                 if (strpos < preferred_size && fd_read != -1)
                 {
-                    if (length > preferred_size)
+                    if (length2 > preferred_size)
                     {
                         if (strAcc == 0)
+                        {
                             n = cfs_read(fd_read, buf, sizeof(buf));
+                            PRINTF("FIRST TIME of reading\n");
+                        }
                         else
                         {
-                            cfs_seek(fd_read, sizeof(buf), CFS_SEEK_SET);
+                            cfs_seek(fd_read, pref_size, CFS_SEEK_SET);
                             n = cfs_read(fd_read, buf, sizeof(buf));
+                            PRINTF("data SEEKED and READED\n");
                         }
                         /*PRINTF("strAcc = %ld\n", strAcc);*/
                     }
                     else if (strAcc == 0)
                         n = cfs_read(fd_read, buf, length);
-                    else
+                    /*else
                     {
                         cfs_seek(fd_read, sizeof(length), CFS_SEEK_SET);
                         n = cfs_read(fd_read, buf, length);
-                    }
+                    }*/
                     PRINTF("bytes readed %ld\n", n);
                     cfs_close(fd_read);
                     strpos += snprintf((char *)buffer, preferred_size - strpos + 1, buf);
@@ -251,10 +256,10 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                 }
 
                 /* Truncate if above CHUNKS_TOTAL bytes. */
-                if (/* *offset*/ strAcc + (int32_t)strpos > length)
+                if (/* *offset*/ strAcc + (int32_t)strpos > length2)
                 {
-                    strpos = length - strAcc;/* *offset; */
-                    PRINTF("strpos = length - *offset : %ld \n", strpos);
+                    strpos = length2 - strAcc;/* *offset; */
+                    PRINTF("strpos = length2 - *offset : %ld \n", strpos);
                 }
 
                 /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
@@ -265,17 +270,18 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                 REST.set_response_payload(response, buffer, *buf);*/
 
                 /* IMPORTANT for chunk-wise resources: Signal chunk awareness to REST engine. */
+                pref_size = preferred_size;
                 *offset += strpos;
                 strAcc += strpos;
                 PRINTF("offset: %ld \nstrAcc = %ld\n", *offset, strAcc);
 
                 /* Signal end of resource representation. */
-                if (/* *offset*/ strAcc >= length)
+                if (/* *offset*/ strAcc >= length2)
                 {
                     *offset = -1;
                     strAcc = 0;
                     length = 0;
-                    /*PRINTF("offset >= length, offset : %ld \n", *offset);*/
+                    PRINTF("*offset >= length, offset : %ld \n", *offset);
                 }
             }
             /*else if
