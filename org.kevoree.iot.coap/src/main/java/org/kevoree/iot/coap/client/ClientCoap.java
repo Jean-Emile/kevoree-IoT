@@ -2,7 +2,7 @@ package org.kevoree.iot.coap.client;
 
 import ch.ethz.inf.vs.californium.coap.*;
 import ch.ethz.inf.vs.californium.coap.registries.MediaTypeRegistry;
-import ch.ethz.inf.vs.californium.coap.registries.OptionNumberRegistry;
+//import ch.ethz.inf.vs.californium.coap.registries.OptionNumberRegistry;
 import ch.ethz.inf.vs.californium.endpoint.resources.RemoteResource;
 import ch.ethz.inf.vs.californium.endpoint.resources.Resource;
 import ch.ethz.inf.vs.californium.util.Log;
@@ -44,66 +44,67 @@ public class ClientCoap
 
     public static void main(String[] args) throws URISyntaxException, IOException
     {
-        String method = null;
-        URI uri = null;
-        String payload = null;
+        String method = "GET";
+//        URI uri = null;
+        URI uri = new URI("coap://[aaaa::c30c:0:0:194]:5683/models?modelname=current.kev");
+//        String payload = null;
         boolean loop = false;
-        boolean fileArgs = false;
-        byte[] fileArray = null;
-        Path filePath;
+//        boolean fileArgs = false;
+        Path filePath = Paths.get("/home/user/kevoree-IoT/org.kevoree.iot.firmware/src/main/c/firmware-kevoree/current.kev");
+        byte[] fileArray = Files.readAllBytes(filePath);
 
         // display help if no parameters specified
-        if (args.length == 0)
-        {
-            printInfo();
-            return;
-        }
+//        if (args.length == 0)
+//        {
+//            printInfo();
+//            return;
+//        }
 
         Log.setLevel(Level.ALL);
         Log.init();
         //File file_ce;
         // input parameters
-        int idx = 0;
-        for (String arg : args) {
-            if (arg.startsWith("-")) {
+//        int idx = 0;
+//        for (String arg : args) {
+//            if (arg.startsWith("-")) {
 //                if (arg.equals("-l")) {
 //                    loop = true;
 //                }
-                if (arg.equals("-f")) {
-                    fileArgs = true;
-                }
-                else {
-                    System.out.println("Unrecognized option: " + arg);
-                }
-            } else {
-                switch (idx) {
-                    case IDX_METHOD:
-                        method = arg.toUpperCase();
-                        break;
-                    case IDX_URI:
-                        try {
-                            uri = new URI(arg);
-                        } catch (URISyntaxException e) {
-                            System.err.println("Failed to parse URI: " + e.getMessage());
-                            System.exit(ERR_BAD_URI);
-                        }
-                        break;
-                    case IDX_PAYLOAD:
-                        if (fileArgs){
-                            System.out.println(Paths.get(arg.toString()).toString());
-                            filePath = Paths.get(arg.toString());
-                            fileArray = Files.readAllBytes(filePath);
-                            System.out.println("Path to file: " + arg.toString());
-                        }
-                        else
-                            payload = arg;
-                        break;
-                    default:
-                        System.out.println("Unexpected argument: " + arg);
-                }
-                ++idx;
-            }
-        }
+//                if (arg.equals("-f")) {
+//                    fileArgs = true;
+//                }
+//                else {
+//                    System.out.println("Unrecognized option: " + arg);
+//                }
+//            } else {
+//                switch (idx) {
+//                    case IDX_METHOD:
+//                        method = arg.toUpperCase();
+//                        break;
+//                    case IDX_URI:
+//                        try {
+//                            uri = new URI(arg);
+//                        } catch (URISyntaxException e) {
+//                            System.err.println("Failed to parse URI: " + e.getMessage());
+//                            System.exit(ERR_BAD_URI);
+//                        }
+//                        break;
+//                    case IDX_PAYLOAD:
+//                        if (fileArgs){
+//                            System.out.println(Paths.get(arg.toString()).toString());
+//                            filePath = Paths.get(arg.toString());
+//                            fileArray = Files.readAllBytes(filePath);
+//                            System.out.println("Path to file: " + arg.toString());
+//                        }
+//                        else
+//                            payload = arg;
+//                        break;
+//                    default:
+//                        System.out.println("Unexpected argument: " + arg);
+//                }
+//                ++idx;
+//            }
+//        }
 
         // check if mandatory parameters specified
         if (method == null) {
@@ -168,6 +169,7 @@ public class ClientCoap
                 if (response != null) {
 
                     response.prettyPrint();
+                    System.out.println(response.getPayloadString());
                     System.out.println("Time elapsed (ms): " + response.getRTT());
 
                     // check of response contains resources

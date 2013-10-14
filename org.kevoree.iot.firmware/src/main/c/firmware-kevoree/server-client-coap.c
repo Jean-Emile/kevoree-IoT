@@ -12,7 +12,7 @@
 #define CHUNKS_TOTAL    2050
 
 /* Defines by kYc0o */
-#define REST_RES_PUT 1
+#define REST_RES_PUT 0
 #define REST_RES_GETMODEL 1
 #define COAP_CLIENT_ENABLED 0
 #define MAX_KEVMOD_BODY    2048
@@ -153,7 +153,8 @@ chunks_handler(void* request, void* response, uint8_t *buffer, uint16_t preferre
 RESOURCE(getModel, METHOD_GET | METHOD_PUT, "models", "tile=\"GET: ?modelname=\"model_name.kev\" /, Kevoree Model\"; rt=\"Control & Data\"");
 
 int32_t strAcc = 0;
-
+int32_t length = 0;
+int32_t length2 = 0;
 void
 getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
@@ -186,8 +187,6 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                 char buf[preferred_size];
                 int fd_read;
                 int32_t n = 0;
-                int32_t length = 0;
-                int32_t length2 = 1;
 
                 if (strAcc == 0)
                 {
@@ -195,7 +194,7 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
 
                     if (fd_read != -1)
                     {
-                        while (length != length2)
+                        do
                         {
                             n = cfs_read(fd_read, buf, sizeof(buf));
                             if (n != -1)
@@ -203,7 +202,7 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                                 length2 = length;
                                 length += n;
                             }
-                        }
+                        } while (length != length2);
                         cfs_close(fd_read);
                         PRINTF("Model length: %ld \n", length);
                     }
@@ -218,15 +217,28 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                 {
                     if (length > preferred_size)
                     {
-                        n = cfs_read(fd_read, buf, sizeof(buf));
+                        if (strAcc == 0)
+                            n = cfs_read(fd_read, buf, sizeof(buf));
+                        else
+                        {
+                            cfs_seek(fd_read, sizeof(buf), CFS_SEEK_SET);
+                            n = cfs_read(fd_read, buf, sizeof(buf));
+                        }
                         /*PRINTF("strAcc = %ld\n", strAcc);*/
                     }
-                    else
+                    else if (strAcc == 0)
                         n = cfs_read(fd_read, buf, length);
+                    else
+                    {
+                        cfs_seek(fd_read, sizeof(length), CFS_SEEK_SET);
+                        n = cfs_read(fd_read, buf, length);
+                    }
                     PRINTF("bytes readed %ld\n", n);
                     cfs_close(fd_read);
-                    strpos += snprintf((char *)buffer, preferred_size, buf);
-                    PRINTF("strpos += snprintf((char *)buffer, preferred_size, buf) : %ld \n", strpos);
+                    strpos += snprintf((char *)buffer, preferred_size - strpos + 1, buf);
+                    length -= strpos;
+                    PRINTF("length = %ld\n", length);
+                    PRINTF("strpos = %ld \n", strpos);
                 }
                 else
                    PRINTF("ERROR: could not read from memory\n");
@@ -254,7 +266,7 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
 
                 /* IMPORTANT for chunk-wise resources: Signal chunk awareness to REST engine. */
                 *offset += strpos;
-                //strAcc += strpos;
+                strAcc += strpos;
                 PRINTF("offset: %ld \nstrAcc = %ld\n", *offset, strAcc);
 
                 /* Signal end of resource representation. */
@@ -262,6 +274,7 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                 {
                     *offset = -1;
                     strAcc = 0;
+                    length = 0;
                     /*PRINTF("offset >= length, offset : %ld \n", *offset);*/
                 }
             }
