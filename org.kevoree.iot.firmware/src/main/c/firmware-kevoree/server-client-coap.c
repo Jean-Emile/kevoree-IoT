@@ -6,34 +6,17 @@
 
 
 /* Define which resources to include to meet memory constraints. */
+#define REST_RES_CHUNKS 0
+#define REST_RES_LEDS 0
 
-#define REST_RES_CHUNKS 1
-#define REST_RES_SEPARATE 0
-#define REST_RES_PUSHING 0
-#define REST_RES_EVENT 0
-#define REST_RES_SUB 0
-#define REST_RES_LEDS 1
-#define REST_RES_TOGGLE 0
-
+#define CHUNKS_TOTAL    2050
 
 /* Defines by kYc0o */
 #define REST_RES_PUT 1
+#define REST_RES_GETMODEL 1
+#define COAP_CLIENT_ENABLED 0
 #define MAX_KEVMOD_BODY    2048
 
-const char *current_model = "node0:ArduinoNode@{" +
-                              "pin:period:serialport,DigitalLight:Timer:LocalChannel:SerialCT,on:off:toggle:flash:tick/" +
-                              "1:L1:2/" +
-                              "1:S1:3:2=devttyACM0/" +
-                              "1:T1:1:1=1000/" +
-                              "1:D1:0:0=13/1:T2:1:1=1000/" +
-                              "3:T1:L1:4/" +
-                              "3:D1:L1:3/" +
-                              "3:T2:S1:4/" +
-                              "0:S1:2=39/" +
-                              "}";
-
-/*#undef PLATFORM_HAS_BUTTON
-#define PLATFORM_HAS_BUTTON 1*/
 #define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0x1)
 #define LOCAL_PORT      UIP_HTONS(COAP_DEFAULT_PORT+1)
 #define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
@@ -49,21 +32,8 @@ const char *current_model = "node0:ArduinoNode@{" +
 #endif
 
 /* For CoAP-specific example: not required for normal RESTful Web service. */
-#if WITH_COAP == 3
-#include "er-coap-03.h"
-#include "er-coap-03-engine.h"
-#elif WITH_COAP == 7
-#include "er-coap-07.h"
-#include "er-coap-07-engine.h"
-#elif WITH_COAP == 12
-#include "er-coap-12.h"
-#include "er-coap-12-engine.h"
-#elif WITH_COAP == 13
 #include "er-coap-13.h"
 #include "er-coap-13-engine.h"
-#else
-#warning "Erbium example without CoAP-specifc functionality"
-#endif /* CoAP-specific example */
 
 #define DEBUG 1
 #if DEBUG
@@ -80,18 +50,45 @@ const char *current_model = "node0:ArduinoNode@{" +
 static void
 print_local_addresses(void)
 {
-  int i;
-  uint8_t state;
+    int i;
+    uint8_t state;
 
-  PRINTF("Server IPv6 addresses: \n");
-  for(i = 0; i < UIP_DS6_ADDR_NB; i++) {
-    state = uip_ds6_if.addr_list[i].state;
-    if(uip_ds6_if.addr_list[i].isused &&
-       (state == ADDR_TENTATIVE || state == ADDR_PREFERRED)) {
-      PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
-      PRINTF("\n");
+    PRINTF("Server IPv6 addresses: \n");
+
+    for(i = 0; i < UIP_DS6_ADDR_NB; i++)
+    {
+        state = uip_ds6_if.addr_list[i].state;
+
+        if(uip_ds6_if.addr_list[i].isused && (state == ADDR_TENTATIVE || state == ADDR_PREFERRED))
+        {
+            PRINT6ADDR(&uip_ds6_if.addr_list[i].ipaddr);
+            PRINTF("\n");
+        }
     }
-  }
+}
+
+void
+write_current_model(void)
+{
+    int fd_write;
+    int n;
+    char *filename = "current.kev";
+    char current_model[216];
+
+    strcpy(current_model, "node0:uKevoreeNode@{pin:period:serialport,DigitalLight:Timer:LocalChannel:SerialCT,on:off:toggle:flash:tick/1:L1:2/1:S1:3:2=devttyUSB0/1:T1:1:1=1000/1:D1:0:0=13/1:T2:1:1=1000/3:T1:L1:4/3:D1:L1:3/3:T2:S1:4/0:S1:2=39/}");
+
+    fd_write = cfs_open(filename, CFS_WRITE);
+
+    if (fd_write != -1)
+    {
+        n = cfs_write(fd_write, current_model, sizeof(current_model));
+        cfs_close(fd_write);
+        printf("current_model successfully written to cfs. wrote %i bytes \n", n);
+    }
+    else
+    {
+        printf("ERROR: could not write to memory.\n");
+    }
 }
 
 
@@ -106,87 +103,204 @@ print_local_addresses(void)
  */
 RESOURCE(chunks, METHOD_GET, "test/chunks", "title=\"Blockwise demo\";rt=\"Data\"");
 
-#define CHUNKS_TOTAL    2050
-
 void
 chunks_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-  int32_t strpos = 0;
+    int32_t strpos = 0;
 
-  /* Check the offset for boundaries of the resource data. */
-  if (*offset>=CHUNKS_TOTAL)
-  {
-    REST.set_response_status(response, REST.status.BAD_OPTION);
-    /* A block error message should not exceed the minimum block size (16). */
+    /* Check the offset for boundaries of the resource data. */
+    if (*offset >= CHUNKS_TOTAL)
+    {
+        REST.set_response_status(response, REST.status.BAD_OPTION);
+        /* A block error message should not exceed the minimum block size (16). */
 
-    const char *error_msg = "BlockOutOfScope";
-    REST.set_response_payload(response, error_msg, strlen(error_msg));
-    return;
-  }
+        const char *error_msg = "BlockOutOfScope";
+        REST.set_response_payload(response, error_msg, strlen(error_msg));
+        return;
+    }
 
-  /* Generate data until reaching CHUNKS_TOTAL. */
-  while (strpos<preferred_size)
-  {
-    strpos += snprintf((char *)buffer+strpos, preferred_size-strpos+1, "|%ld|", *offset);
-  }
+    /* Generate data until reaching CHUNKS_TOTAL. */
+    while (strpos < preferred_size)
+    {
+        strpos += snprintf((char *)buffer + strpos, preferred_size-strpos+1, "|%ld|", *offset);
+    }
 
-  /* snprintf() does not adjust return value if truncated by size. */
-  if (strpos > preferred_size)
-  {
-    strpos = preferred_size;
-  }
+    /* snprintf() does not adjust return value if truncated by size. */
+    if (strpos > preferred_size)
+        strpos = preferred_size;
 
-  /* Truncate if above CHUNKS_TOTAL bytes. */
-  if (*offset+(int32_t)strpos > CHUNKS_TOTAL)
-  {
-    strpos = CHUNKS_TOTAL - *offset;
-  }
+    /* Truncate if above CHUNKS_TOTAL bytes. */
+    if (*offset+(int32_t)strpos > CHUNKS_TOTAL)
+        strpos = CHUNKS_TOTAL - *offset;
 
-  REST.set_response_payload(response, buffer, strpos);
+    REST.set_response_payload(response, buffer, strpos);
 
-  /* IMPORTANT for chunk-wise resources: Signal chunk awareness to REST engine. */
-  *offset += strpos;
+    /* IMPORTANT for chunk-wise resources: Signal chunk awareness to REST engine. */
+    *offset += strpos;
 
-  /* Signal end of resource representation. */
-  if (*offset>=CHUNKS_TOTAL)
-  {
-    *offset = -1;
-  }
+    /* Signal end of resource representation. */
+    if (*offset >= CHUNKS_TOTAL)
+        *offset = -1;
 }
 #endif
 
-/******************************************************************************/
-#if REST_RES_SEPARATE && defined (PLATFORM_HAS_BUTTON) && WITH_COAP > 3
-/* Required to manually (=not by the engine) handle the response transaction. */
-#if WITH_COAP == 7
-#include "er-coap-07-separate.h"
-#include "er-coap-07-transactions.h"
-#elif WITH_COAP == 12
-#include "er-coap-12-separate.h"
-#include "er-coap-12-transactions.h"
-#elif WITH_COAP == 13
-#include "er-coap-13-separate.h"
-#include "er-coap-13-transactions.h"
+#if REST_RES_GETMODEL
+/*
+ * TODO GET CURRENT MODEL   return current_model;
+ */
+
+
+RESOURCE(getModel, METHOD_GET | METHOD_PUT, "models", "tile=\"GET: ?modelname=\"model_name.kev\" /, Kevoree Model\"; rt=\"Control & Data\"");
+
+int32_t strAcc = 0;
+
+void
+getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+{
+    if (*offset >= CHUNKS_TOTAL)
+    {
+        REST.set_response_status(response, REST.status.BAD_OPTION);
+        /* A block error message should not exceed the minimum block size (16).*/
+        const char *error_msg = "BlockOutOfScope";
+        REST.set_response_payload(response, error_msg, strlen(error_msg));
+        return;
+    }
+
+    PRINTF("Entering getModel_handler \n");
+    size_t len = 0;
+    int32_t strpos = 0;
+    const char *modelname;
+    uint8_t method = REST.get_method_type(request);
+
+    if (len=(REST.get_query_variable(request, "modelname", &modelname)))
+    {
+        if (method & METHOD_GET)
+        {
+            PRINTF("Method GET\nmodel name: %.*s\n", len, modelname);
+
+            if (strncmp(modelname, "current.kev", len)==0)
+            {
+                PRINTF("*offset = %ld\npreferred_size = %d\nstrAcc = %ld\n", *offset, preferred_size, strAcc);
+
+                char *filename = "current.kev";
+                char buf[preferred_size];
+                int fd_read;
+                int32_t n = 0;
+                int32_t length = 0;
+                int32_t length2 = 1;
+
+                if (strAcc == 0)
+                {
+                    fd_read = cfs_open(filename, CFS_READ);
+
+                    if (fd_read != -1)
+                    {
+                        while (length != length2)
+                        {
+                            n = cfs_read(fd_read, buf, sizeof(buf));
+                            if (n != -1)
+                            {
+                                length2 = length;
+                                length += n;
+                            }
+                        }
+                        cfs_close(fd_read);
+                        PRINTF("Model length: %ld \n", length);
+                    }
+                    else
+                        PRINTF("ERROR: could not read from memory\n");
+                }
+
+                fd_read = cfs_open(filename, CFS_READ);
+
+                /* Generate data until reaching CHUNKS_TOTAL.*/
+                if (strpos < preferred_size && fd_read != -1)
+                {
+                    if (length > preferred_size)
+                    {
+                        n = cfs_read(fd_read, buf, sizeof(buf));
+                        /*PRINTF("strAcc = %ld\n", strAcc);*/
+                    }
+                    else
+                        n = cfs_read(fd_read, buf, length);
+                    PRINTF("bytes readed %ld\n", n);
+                    cfs_close(fd_read);
+                    strpos += snprintf((char *)buffer, preferred_size, buf);
+                    PRINTF("strpos += snprintf((char *)buffer, preferred_size, buf) : %ld \n", strpos);
+                }
+                else
+                   PRINTF("ERROR: could not read from memory\n");
+
+                /* snprintf() does not adjust return value if truncated by size.*/
+                if (strpos > preferred_size)
+                {
+                    strpos = preferred_size;
+                    PRINTF("strpos = prefered_size, strpos : %ld \n", strpos);
+                }
+
+                /* Truncate if above CHUNKS_TOTAL bytes. */
+                if (/* *offset*/ strAcc + (int32_t)strpos > length)
+                {
+                    strpos = length - strAcc;/* *offset; */
+                    PRINTF("strpos = length - *offset : %ld \n", strpos);
+                }
+
+                /* The query string can be retrieved by rest_get_query() or parsed for its key-value pairs. */
+                REST.set_header_content_type(response, REST.type.TEXT_PLAIN); /* text/plain is the default, hence this option could be omitted. */
+                REST.set_header_etag(response, (uint8_t *) &strpos, 1);
+                REST.set_response_payload(response, buffer, strpos);
+                /*REST.set_header_etag(response, (uint8_t *) *buf, 1);
+                REST.set_response_payload(response, buffer, *buf);*/
+
+                /* IMPORTANT for chunk-wise resources: Signal chunk awareness to REST engine. */
+                *offset += strpos;
+                //strAcc += strpos;
+                PRINTF("offset: %ld \nstrAcc = %ld\n", *offset, strAcc);
+
+                /* Signal end of resource representation. */
+                if (/* *offset*/ strAcc >= length)
+                {
+                    *offset = -1;
+                    strAcc = 0;
+                    /*PRINTF("offset >= length, offset : %ld \n", *offset);*/
+                }
+            }
+            /*else if
+            {
+
+
+            }*/
+        }
+    }
+    else
+    {
+        /*PRINTF("len variable returns: %i\n", len);*/
+        REST.set_response_status(response, REST.status.BAD_OPTION);
+        /* A block error message should not exceed the minimum block size (16). */
+        const char *error_msg = "Bad query variable";
+        REST.set_response_payload(response, error_msg, strlen(error_msg));
+        return;
+    }
+}
 #endif
 
 #if REST_RES_PUT
 /*
- * PUT TODO GET CURRENT MODEL   return current_model;
+ * PUT in flash new application modules
 */
-RESOURCE(getData, METHOD_PUT, "data", "tile=\"PUT: data/, PUT binary data\"; rt=\"Control\"");
+RESOURCE(putData, METHOD_PUT, "data", "tile=\"ELF MODULE: ?filename='filename.ce', PUT APPLICATION/OCTET_STREAM\"; rt=\"Control\"");
 
-int fd_write, fd_read;
-int n;
-const char *filename;
 static int32_t large_update_size = 0;
 static uint8_t large_update_store[MAX_KEVMOD_BODY] = {0};
 static unsigned int large_update_ct = -1;
 
 void
-getData_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
+putData_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
 	coap_packet_t *const coap_req = (coap_packet_t *) request;
-
+    int fd_write = 0;
+    int n = 0;
+    const char *filename;
 	uint8_t *incoming = NULL;
 	size_t len = 0;
 	size_t len2 = 0;
@@ -241,39 +355,8 @@ getData_handler(void* request, void* response, uint8_t *buffer, uint16_t preferr
 	  REST.set_response_payload(response, error_msg, strlen(error_msg));
 	  return;
 	}
-
-	/*if (validQuery){
-		if (len2=REST.get_query_variable(request, "filename", &filename)){
-			PRINTF("File name %.*s\n", len2, filename);
-			fd_write = cfs_open(filename, CFS_WRITE);
-			validQuery = 0;
-		}
-		else
-		{
-			PRINTF("Invalid query variable");
-		}
-	}*/
-
-
-
-	/*size_t len2 = 0;
-	char *bytes = NULL;
-
-	int len = coap_get_payload(request, (const uint8_t**) &bytes);
-
-	if ((len2=REST.get_query_variable(request, "filename", &filename))) {
-	   PRINTF("File name %.*s\n", len2, filename);
-	   fd_write = cfs_open(filename, CFS_WRITE);
-
-	   if(fd_write != -1) {
-	       n = cfs_write(fd_write, bytes, sizeof(bytes));
-	       cfs_close(fd_write);
-	       PRINTF("Successfully written to cfs. wrote %i bytes\n", n);
-	     } else {
-	       PRINTF("ERROR: could not write to memory \n");
-	     }
-	}*/
 }
+
 #endif
 /******************************************************************************/
 #if defined (PLATFORM_HAS_LEDS)
@@ -326,21 +409,7 @@ leds_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_
   }
 }
 #endif
-
-/******************************************************************************/
-#if REST_RES_TOGGLE
-/* A simple actuator example. Toggles the red led */
-RESOURCE(toggle, METHOD_POST, "actuators/toggle", "title=\"Red LED\";rt=\"Control\"");
-void
-toggle_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-  leds_toggle(LEDS_RED);
-}
-#endif
 #endif /* PLATFORM_HAS_LEDS */
-
-
-
 
 PROCESS(kevoree_runtime, "Kevoree Runtime");
 AUTOSTART_PROCESSES(&kevoree_runtime);
@@ -350,128 +419,128 @@ uip_ipaddr_t server_ipaddr;
 void
 client_chunk_handler(void *response)
 {
-  const uint8_t *chunk;
+    const uint8_t *chunk;
 
-  int len = coap_get_payload(response, &chunk);
-  printf("|%.*s", len, (char *)chunk);
+    int len = coap_get_payload(response, &chunk);
+    printf("|%.*s", len, (char *)chunk);
 }
 
 PROCESS_THREAD(kevoree_runtime, ev, data)
 {
-  PROCESS_BEGIN();
+    PROCESS_BEGIN();
+    write_current_model();
+    static coap_packet_t request[1]; /* This way the packet can be treated as pointer as usual. */
+    SERVER_NODE(&server_ipaddr);
+    coap_receiver_init();
 
-  static coap_packet_t request[1]; /* This way the packet can be treated as pointer as usual. */
-  SERVER_NODE(&server_ipaddr);
-  coap_receiver_init();
-
-  PRINTF("Starting Kevoree Runtime\n");
+    PRINTF("Starting Kevoree Runtime\n");
 
 #ifdef RF_CHANNEL
-  PRINTF("RF channel: %u\n", RF_CHANNEL);
+    PRINTF("RF channel: %u\n", RF_CHANNEL);
 #endif
 #ifdef IEEE802154_PANID
-  PRINTF("PAN ID: 0x%04X\n", IEEE802154_PANID);
+    PRINTF("PAN ID: 0x%04X\n", IEEE802154_PANID);
 #endif
 
-  PRINTF("uIP buffer: %u\n", UIP_BUFSIZE);
-  PRINTF("LL header: %u\n", UIP_LLH_LEN);
-  PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
-  PRINTF("REST max chunk: %u\n", REST_MAX_CHUNK_SIZE);
+    PRINTF("uIP buffer: %u\n", UIP_BUFSIZE);
+    PRINTF("LL header: %u\n", UIP_LLH_LEN);
+    PRINTF("IP+UDP header: %u\n", UIP_IPUDPH_LEN);
+    PRINTF("REST max chunk: %u\n", REST_MAX_CHUNK_SIZE);
 
-  /* Initialize the REST engine. */
-  rest_init_engine();
+    rest_init_engine();
 
-
-/* TODO call maven resolver paramètres const char*group,const char *group,const char *ext,const const char *urls[]
- copy in file system the file
-
-
-
- */
-
-  /* Activate the application-specific resources. */
-#if REST_RES_HELLO
-  rest_activate_resource(&resource_helloworld);
-#endif
-#if REST_RES_MIRROR
-  rest_activate_resource(&resource_mirror);
-#endif
 #if REST_RES_CHUNKS
-  rest_activate_resource(&resource_chunks);
+    rest_activate_resource(&resource_chunks);
 #endif
-#if REST_RES_PUSHING
-  rest_activate_periodic_resource(&periodic_resource_pushing);
-#endif
-#if defined (PLATFORM_HAS_BUTTON) && REST_RES_EVENT
-  rest_activate_event_resource(&resource_event);
-#endif
-#if defined (PLATFORM_HAS_BUTTON) && REST_RES_SEPARATE && WITH_COAP > 3
-  /* No pre-handler anymore, user coap_separate_accept() and coap_separate_reject(). */
-  rest_activate_resource(&resource_separate);
-#endif
-/*#if defined (PLATFORM_HAS_BUTTON) && (REST_RES_EVENT || (REST_RES_SEPARATE && WITH_COAP > 3))*/
 #if defined (PLATFORM_HAS_BUTTON)
-  SENSORS_ACTIVATE(button_sensor);
+    SENSORS_ACTIVATE(button_sensor);
 #endif
-#if REST_RES_SUB
-  rest_activate_resource(&resource_sub);
+#if REST_RES_GETMODEL
+    rest_activate_resource(&resource_getModel);
 #endif
 #if REST_RES_PUT
-  rest_activate_resource(&resource_getData);
+    rest_activate_resource(&resource_putData);
 #endif
 #if defined (PLATFORM_HAS_LEDS)
 #if REST_RES_LEDS
-  rest_activate_resource(&resource_leds);
-#endif
-#if REST_RES_TOGGLE
-  rest_activate_resource(&resource_toggle);
+    rest_activate_resource(&resource_leds);
 #endif
 #endif /* PLATFORM_HAS_LEDS */
-#if defined (PLATFORM_HAS_LIGHT) && REST_RES_LIGHT
-  SENSORS_ACTIVATE(light_sensor);
-  rest_activate_resource(&resource_light);
-#endif
-#if defined (PLATFORM_HAS_BATTERY) && REST_RES_BATTERY
-  SENSORS_ACTIVATE(battery_sensor);
-  rest_activate_resource(&resource_battery);
-#endif
-#if defined (PLATFORM_HAS_RADIO) && REST_RES_RADIO
-  SENSORS_ACTIVATE(radio_sensor);
-  rest_activate_resource(&resource_radio);
-#endif
+
+/* Store dummy current model in filesystem */
+    /*char *filename = "current.kev";
+    int fd_write;
+    int m = 0;
+    char current_model[220];
+
+    strcpy(current_model, "node0:uKevoreeNode@{\
+    pin:period:serialport,DigitalLight:Timer:LocalChannel:SerialCT,on:off:toggle:flash:tick/\
+    1:L1:2/\
+    1:S1:3:2=devttyUSB0/\
+    1:T1:1:1=1000/\
+    1:D1:0:0=13/1:T2:1:1=1000/\
+    3:T1:L1:4/\
+    3:D1:L1:3/\
+    3:T2:S1:4/\
+    0:S1:2=39/\
+    }");*/
+
+    /*char current_model = "node0:uKevoreeNode@{\
+        pin:period:serialport,DigitalLight:Timer:LocalChannel:SerialCT,on:off:toggle:flash:tick/\
+        1:L1:2/\
+        1:S1:3:2=devttyUSB0/\
+        1:T1:1:1=1000/\
+        1:D1:0:0=13/1:T2:1:1=1000/\
+        3:T1:L1:4/\
+        3:D1:L1:3/\
+        3:T2:S1:4/\
+        0:S1:2=39/\
+        }";*/
+
+    /*fd_write = cfs_open(filename, CFS_WRITE);
+
+    if (fd_write != -1)
+    {
+        m = cfs_write(fd_write, current_model, sizeof(current_model));
+        cfs_close(fd_write);
+        printf("current_model successfully written to cfs. wrote %i bytes\n", m);
+    }
+    else
+    {
+        printf("ERROR: could not write to memory in step 2.\n");
+    }*/
 
   /* Define application-specific events here. */
-  while(1) {
-    PROCESS_WAIT_EVENT();
+    while(1)
+    {
+        PROCESS_WAIT_EVENT();
 
 
 #if defined (PLATFORM_HAS_BUTTON)
-    if (ev == sensors_event && data == &button_sensor) {
-      PRINTF("BUTTON\n");
-      print_local_addresses();
+        if (ev == sensors_event && data == &button_sensor) {
+            PRINTF("BUTTON\n");
+            print_local_addresses();
 
-      coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
-      coap_set_header_uri_path(request, "/helloWorld");
+#if defined (COAP_CLIENT_ENABLED)
+            coap_init_message(request, COAP_TYPE_CON, COAP_GET, 0);
+            coap_set_header_uri_path(request, "/mavenresolver?group=org.kevoree.helloworld&name=hello_world&version=1.0&extension=.ce\n");
 
-      /*printf("--Requesting /mavenresolver?group=org.kevoree.helloworld&name=hello_world&version=1.0&extension=.ce\n");*/
-      printf("--Requesting /helloWorld\n");
 
-      PRINT6ADDR(&server_ipaddr);
-      PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
+/* TODO call maven resolver paramètres const char*group,const char *group,const char *ext,const const char *urls[]
+ * copy in file system the file
+ */
+            printf("--Requesting /mavenresolver?group=org.kevoree.helloworld&name=hello_world&version=1.0&extension=.ce\n");
+            /*printf("--Requesting /helloWorld\n");*/
 
-      COAP_BLOCKING_REQUEST(&server_ipaddr, REMOTE_PORT, request, client_chunk_handler);
+            PRINT6ADDR(&server_ipaddr);
+            PRINTF(" : %u\n", UIP_HTONS(REMOTE_PORT));
 
-      printf("\n--Done--\n");
+            COAP_BLOCKING_REQUEST(&server_ipaddr, REMOTE_PORT, request, client_chunk_handler);
 
-#if REST_RES_EVENT
-      /* Call the event_handler for this application-specific event. */
-      event_event_handler(&resource_event);
-#endif
-#if REST_RES_SEPARATE && WITH_COAP>3
-      /* Also call the separate response example handler. */
-      separate_finalize_handler();
-#endif
-    }
+            printf("\n--Done--\n");
+#endif /* COAP_CLIENT_ENABLED */
+
+        }
 #endif /* PLATFORM_HAS_BUTTON */
   } /* while (1) */
 
