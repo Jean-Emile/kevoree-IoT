@@ -16,6 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.logging.Level;
 
+import static java.lang.Thread.sleep;
+
 /**
  * Created with IntelliJ IDEA.
  * User: jed
@@ -44,9 +46,9 @@ public class ClientCoap
 
     public static void main(String[] args) throws URISyntaxException, IOException
     {
-        String method = "GET";
+//        String method = "GET";
 //        URI uri = null;
-        URI uri = new URI("coap://[aaaa::c30c:0:0:194]:5683/models?modelname=current.kev");
+//        URI uri = new URI("coap://[aaaa::c30c:0:0:194]:5683/models?modelname=current.kev");
 //        String payload = null;
         boolean loop = false;
 //        boolean fileArgs = false;
@@ -107,21 +109,21 @@ public class ClientCoap
 //        }
 
         // check if mandatory parameters specified
-        if (method == null) {
-            System.err.println("Method not specified");
-            System.exit(ERR_MISSING_METHOD);
-        }
-        if (uri == null) {
-            System.err.println("URI not specified");
-            System.exit(ERR_MISSING_URI);
-        }
+//        if (method == null) {
+//            System.err.println("Method not specified");
+//            System.exit(ERR_MISSING_METHOD);
+//        }
+//        if (uri == null) {
+//            System.err.println("URI not specified");
+//            System.exit(ERR_MISSING_URI);
+//        }
 
         // create request according to specified method
-        Request request = newRequest(method);
-        if (request == null) {
-            System.err.println("Unknown method: " + method);
-            System.exit(ERR_UNKNOWN_METHOD);
-        }
+        Request request = new PUTRequest();//newRequest(method);
+//        if (request == null) {
+//            System.err.println("Unknown method: " + method);
+//            System.exit(ERR_UNKNOWN_METHOD);
+//        }
 
         //if (method.equals("OBSERVE")) {
         //request.setOption(new Option(0, OptionNumberRegistry.OBSERVE));
@@ -129,18 +131,18 @@ public class ClientCoap
         //}
 
         // set request URI
-        if (method.equals("DISCOVER") && (uri.getPath() == null || uri.getPath().isEmpty() || uri.getPath().equals("/"))) {
-            // add discovery resource path to URI
-            try {
-                uri = new URI(uri.getScheme(), uri.getAuthority(), DISCOVERY_RESOURCE, uri.getQuery());
-
-            } catch (URISyntaxException e) {
-                System.err.println("Failed to parse URI: " + e.getMessage());
-                System.exit(ERR_BAD_URI);
-            }
-        }
-        request.setURI(uri);
-
+//        if (method.equals("DISCOVER") && (uri.getPath() == null || uri.getPath().isEmpty() || uri.getPath().equals("/"))) {
+//            // add discovery resource path to URI
+//            try {
+//                uri = new URI(uri.getScheme(), uri.getAuthority(), DISCOVERY_RESOURCE, uri.getQuery());
+//
+//            } catch (URISyntaxException e) {
+//                System.err.println("Failed to parse URI: " + e.getMessage());
+//                System.exit(ERR_BAD_URI);
+//            }
+//        }
+        request.setURI(new URI("coap://[aaaa::c30c:0:0:194]:5683/models?modelname=current.kev"));
+        request.setPayload(fileArray);
         request.setToken( TokenManager.getInstance().acquireToken() );
 
         // enable response queue in order to use blocking I/O
@@ -200,6 +202,85 @@ public class ClientCoap
                     System.err.println("Request timed out");
 
                 }
+
+
+
+        } catch (UnknownHostException e) {
+            System.err.println("Unknown host: " + e.getMessage());
+
+        } catch (IOException e) {
+            System.err.println("Failed to execute request: " + e.getMessage());
+
+        }
+
+        try {
+            sleep(2000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
+        Request request2 = new GETRequest();//newRequest(method);
+        request2.setURI(new URI("coap://[aaaa::c30c:0:0:194]:5683/models?modelname=current.kev"));
+
+        request2.setToken( TokenManager.getInstance().acquireToken() );
+
+        // enable response queue in order to use blocking I/O
+        request2.enableResponseQueue(true);
+
+        //
+        request2.prettyPrint();
+
+        // execute request
+        try {
+            request2.execute();
+
+            // receive response
+
+            System.out.println("Receiving response...");
+            Response response = null;
+            try {
+                response = request2.receiveResponse();
+            } catch (InterruptedException e) {
+                System.err.println("Failed to receive response: " + e.getMessage());
+
+            }
+
+            // output response
+
+            if (response != null) {
+
+                response.prettyPrint();
+                System.out.println(response.getPayloadString());
+                System.out.println("Time elapsed (ms): " + response.getRTT());
+
+                // check of response contains resources
+                if (response.getContentType()== MediaTypeRegistry.APPLICATION_LINK_FORMAT) {
+
+                    String linkFormat = response.getPayloadString();
+
+                    // create resource three from link format
+                    Resource root = RemoteResource.newRoot(linkFormat);
+                    if (root != null) {
+
+                        // output discovered resources
+                        System.out.println("\nDiscovered resources:");
+                        root.prettyPrint();
+
+                    } else {
+                        System.err.println("Failed to parse link format");
+
+                    }
+                } else {
+
+
+                }
+
+            } else {
+
+                // no response received
+                System.err.println("Request timed out");
+
+            }
 
 
 
