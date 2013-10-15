@@ -216,28 +216,29 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                 /* Generate data until reaching CHUNKS_TOTAL.*/
                 if (strpos < preferred_size && fd_read != -1)
                 {
-                    if (length2 > preferred_size)
+                    if (length2 - strAcc >= preferred_size)
                     {
                         if (strAcc == 0)
                         {
                             n = cfs_read(fd_read, buf, sizeof(buf));
+                            pref_size = preferred_size;
                             PRINTF("FIRST TIME of reading\n");
                         }
                         else
                         {
                             cfs_seek(fd_read, pref_size, CFS_SEEK_SET);
                             n = cfs_read(fd_read, buf, sizeof(buf));
+                            pref_size += preferred_size;
                             PRINTF("data SEEKED and READED\n");
                         }
                         /*PRINTF("strAcc = %ld\n", strAcc);*/
                     }
-                    else if (strAcc == 0)
-                        n = cfs_read(fd_read, buf, length);
-                    /*else
+                    else
                     {
-                        cfs_seek(fd_read, sizeof(length), CFS_SEEK_SET);
-                        n = cfs_read(fd_read, buf, length);
-                    }*/
+                        cfs_seek(fd_read, pref_size, CFS_SEEK_SET);
+                        n = cfs_read(fd_read, buf, (length2 - strAcc));
+                        PRINTF("last read! \n");
+                    }
                     PRINTF("bytes readed %ld\n", n);
                     cfs_close(fd_read);
                     strpos += snprintf((char *)buffer, preferred_size - strpos + 1, buf);
@@ -270,7 +271,7 @@ getModel_handler(void* request, void* response, uint8_t *buffer, uint16_t prefer
                 REST.set_response_payload(response, buffer, *buf);*/
 
                 /* IMPORTANT for chunk-wise resources: Signal chunk awareness to REST engine. */
-                pref_size = preferred_size;
+
                 *offset += strpos;
                 strAcc += strpos;
                 PRINTF("offset: %ld \nstrAcc = %ld\n", *offset, strAcc);
