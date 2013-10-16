@@ -1,6 +1,8 @@
 package org.kevoree.iot.emf4c;
 
+import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EReference;
 import org.kevoree.iot.emf4c.utils.Helper;
 
 import java.io.IOException;
@@ -24,19 +26,55 @@ public class DefaultFactoryGenerator {
         String name =eClass.getName();
 
         factory.append("struct "+name+" * create"+name+"(void){\n" +
-                "return (struct "+name+"*)malloc(sizeof("+name+"));\n" +
-                "}\n") ;
+                name+" *ptr = (struct "+name+"*)malloc(sizeof("+name+"));\n");
+        factory.append("if(ptr == NULL){\n printf(\"Error malloc "+name+"\"); \n }else {\n");
+
+        for(EAttribute at :  eClass.getEAllAttributes())
+        {
+            if(at.getEAttributeType().getName().equals("EString")){
+                factory.append("ptr->"+at.getName()+"=NULL;\n");
+            }
+        }
 
 
-        factory.append("void free"+name+"(void){\n" +
-                // TODO
-                "}\n") ;
+        for( EReference eReference : eClass.getEAllReferences() ){
+            if(eReference.getUpperBound() == -1){
+                factory.append("ptr->count_"+eReference.getName()+"=0;\n");
+            }
+        }
+        factory.append("}\n");
+
+        factory.append("return ptr;\n") ;
+        factory.append("}\n") ;
+
+
+        factory.append("void free"+name+"("+name+" * ptr){\n");
+      //  factory.append("int i;\n");
+
+        for(EAttribute at :  eClass.getEAllAttributes())
+        {
+
+            if(DataTypes.getInstance().freeTypes.contains(at.getEAttributeType().getName())){
+                factory.append("free(ptr->"+at.getName()+");\n\n");
+            }
+        }
+
+        for( EReference eReference : eClass.getEAllReferences() ){
+            // TODO
+          //  factory.append("for(i=0;i<ptr->count_"+eReference.getName()+";i++){\n");
+            factory.append("free(ptr->"+eReference.getName()+");\n");
+            //factory.append("}\n");
+        }
+        factory.append("}\n");
+
+
+
 
     }
 
     public String getFactory() {
         return Helper.genifdefheader("DefaultFactory")+"\n"+
-               Helper.genInclude(package_name)+"\n"+
+                Helper.genInclude(package_name)+"\n"+
                 "#include <stdlib.h>\n" +
                 factory.toString()+"\n"
                 +Helper.genifdefbottom();

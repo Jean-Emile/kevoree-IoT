@@ -54,15 +54,17 @@ public class ClassGenerator  {
             if(eReference.getUpperBound() == -1){
                 body.append("\tint count_" + name + ";\n");
                 body.append("\tstruct " + eReference.getEReferenceType().getName() + " **" + eReference.getName() + ";\n");
-                methods.append("void add"+name+""+structname+"("+structname+"*root,"+type+" *val){\n" +
+                methods.append("void add"+name+""+structname+"("+structname+"*root,struct "+type+" *val){\n" +
+                        "if(root == NULL) { printf(\"ERROR\"); }"+
+                        "if(val == NULL) { printf(\"ERROR\"); }"+
                         "if(root->"+name+"== NULL){\n"+
                         "root->count_"+name +"=0;\n" +
                         "root->"+name+" = malloc(sizeof("+type+"*));\n" +
-                        "root->"+name+"[0] =("+type+"*)val;\n"+
+                        "root->"+name+"[0] =val;\n"+
                         "root->count_"+name +"++;\n" +
                         "} else {\n"+
                         "root->"+name+" = realloc(root->"+name+",(root->count_"+name+"+1)*sizeof("+type+"*));\n" +
-                        "root->"+name+"[root->count_"+name+"] =("+type+"*)val;"+
+                        "root->"+name+"[root->count_"+name+"] =val;\n "+
                         "root->count_"+name +"++;\n" +
                         "}}\n");
             }else {

@@ -1,0 +1,26 @@
+
+int addNodeContainerRoot(ContainerRoot*root,ContainerNode *val){
+if(root->nodes== NULL)
+{
+root->count_nodes=0;
+root->nodes = malloc(1*sizeof(struct ContainerNode*));
+if(root->nodes == NULL)
+{
+return ERROR;
+}
+root->nodes[root->count_nodes] =(struct ContainerNode*)val;
+root->count_nodes++;
+}
+else
+{
+root->nodes = realloc(root->nodes,(root->count_nodes+1)*sizeof(struct ContainerNode*));
+if(root->nodes == NULL)
+{
+return ERROR;
+}
+root->nodes[root->count_nodes] =(struct ContainerNode*)val;
+root->count_nodes++;
+}
+
+return OK;
+}

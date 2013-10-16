@@ -1,0 +1,22 @@
+#* @vtlvariable name="varname" type="java.lang.String" *#
+#* @vtlvariable name="name" type="java.lang.String" *#
+#* @vtlvariable name="attributes" type="java.lang.String" *#
+
+
+
+${name} * create${name}(void)
+{
+    ${name} *${varname} = (${name}*)malloc(sizeof(${name}));
+    if(${varname} == NULL)
+    {
+        printf("ERROR malloc ${name}");
+        return NULL;
+    }
+    else
+    {
+        ${attributes}
+    }
+}
+
+
+
