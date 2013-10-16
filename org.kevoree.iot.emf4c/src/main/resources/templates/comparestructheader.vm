@@ -2,12 +2,4 @@
 #* @vtlvariable name="var_s" type="java.lang.String" *#
 #* @vtlvariable name="var_t" type="java.lang.String" *#
 #* @vtlvariable name="compare_attributes" type="java.lang.String" *#
-
-
-void compare${name}(${name} *${var_s},${name} *${var_t})
-{
-   ${compare_attributes}
-    ${compare_struct}
-
-}
-
+int compare${name}(${name} *${var_s},${name} *${var_t});

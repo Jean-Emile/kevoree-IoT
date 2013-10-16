@@ -25,8 +25,8 @@ public class DataTypes {
 
 
 
-    List<String> freeTypes = new ArrayList<String>();
-     HashMap dataTypes = new java.util.HashMap<String, String>() ;
+    public List<String> freeTypes = new ArrayList<String>();
+     public  HashMap dataTypes = new java.util.HashMap<String, String>() ;
 
      public DataTypes(){
 

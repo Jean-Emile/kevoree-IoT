@@ -3,6 +3,7 @@ package org.kevoree.iot.emf4c;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
 import org.eclipse.emf.ecore.EReference;
+import org.kevoree.iot.emf4c.utils.DataTypes;
 import org.kevoree.iot.emf4c.utils.FileManager;
 import org.kevoree.iot.emf4c.utils.Helper;
 
@@ -18,7 +19,7 @@ import java.io.IOException;
 public class ClassGenerator  {
 
     private String target_path="";
-    StringBuilder methods = new StringBuilder();
+
     public ClassGenerator(String target_path){
         this.target_path = target_path;
     }
@@ -29,49 +30,49 @@ public class ClassGenerator  {
 
         StringBuilder result = new StringBuilder();
 
-        header.append(" #include <stdlib.h>\n" +
-                " #include <stdio.h>\n");
+        header.append("#include <stdlib.h>\n" +
+                      "#include <stdio.h>\n"+
+                      "#include \"tools.h\"\n"+
+                      "#include <string.h>\n");
 
         String structname =  eClass.getName();
         body.append("typedef struct _" + structname + " { \n");
 
 
+        for( EAttribute eAttribute : eClass.getEAllAttributes() )
+        {
+            if(eAttribute.getEAttributeType().getName().equals("EString")){
+                int size = 8;
+                if(eAttribute.getDefaultValueLiteral() != null){
+                    size = Integer.parseInt(eAttribute.getDefaultValueLiteral());
+                }
+                body.append("\t" +"char " + eAttribute.getName() + "["+size+"];\n");
 
-        for( EAttribute eAttribute : eClass.getEAllAttributes() ){
-            body.append("\t" + DataTypes.getInstance().dataTypes.get(eAttribute.getEAttributeType().getName()) + " " + eAttribute.getName() + ";\n");
+            }      else {
+                body.append("\t" + DataTypes.getInstance().dataTypes.get(eAttribute.getEAttributeType().getName()) + " " + eAttribute.getName() + ";\n");
+            }
         }
 
-        for( EReference eReference : eClass.getEAllReferences() ){
+        for( EReference eReference : eClass.getEAllReferences() )
+        {
 
-            String name =     eReference.getName();
+            String name = eReference.getName();
             String type = eReference.getEReferenceType().getName();
 
             header.append(Helper.genInclude(eReference.getEReferenceType().getName()));
 
-
-
-            // pointer on struct
-            if(eReference.getUpperBound() == -1){
+            // pointer on a struct
+            if(eReference.getUpperBound() == -1)
+            {
                 body.append("\tint count_" + name + ";\n");
                 body.append("\tstruct " + eReference.getEReferenceType().getName() + " **" + eReference.getName() + ";\n");
-                methods.append("void add"+name+""+structname+"("+structname+"*root,struct "+type+" *val){\n" +
-                        "if(root == NULL) { printf(\"ERROR\"); }"+
-                        "if(val == NULL) { printf(\"ERROR\"); }"+
-                        "if(root->"+name+"== NULL){\n"+
-                        "root->count_"+name +"=0;\n" +
-                        "root->"+name+" = malloc(sizeof("+type+"*));\n" +
-                        "root->"+name+"[0] =val;\n"+
-                        "root->count_"+name +"++;\n" +
-                        "} else {\n"+
-                        "root->"+name+" = realloc(root->"+name+",(root->count_"+name+"+1)*sizeof("+type+"*));\n" +
-                        "root->"+name+"[root->count_"+name+"] =val;\n "+
-                        "root->count_"+name +"++;\n" +
-                        "}}\n");
+
             }else {
                 body.append("\tstruct " + eReference.getEReferenceType().getName() + " *" + eReference.getName() + ";\n");
             }
 
         }
+        body.append("\tint (*accept)(struct _"+structname+"*,struct _"+structname+"*, Visitor*);\n");
 
 
         body.append("} " + eClass.getName() + " ;\n");
@@ -82,14 +83,44 @@ public class ClassGenerator  {
         result.append(body+"\n");
         // result.append(methods+"\n");
 
+
+        result.append("int _accept"+structname+"("+structname+"* this,"+structname+"* c,Visitor* visitor) {\n");
+        result.append("int i;\n");
+        for( EAttribute eAttribute : eClass.getEAllAttributes() )
+        {
+
+            result.append("visitor->action((void*)this->"+eAttribute.getName()+",(void*)c->"+eAttribute.getName()+",0);\n");
+
+        }
+
+        for( EReference eReference : eClass.getEAllReferences() )
+        {
+            String name = eReference.getName();
+            if(eReference.getUpperBound() == -1)
+            {
+
+                result.append("for(i=0;i<this->count_"+name+";i++){\n");
+                result.append("visitor->action((void*)this->"+name+",(void*)c->"+name+",0);\n");
+                result.append("}\n");
+            }else {
+                result.append("visitor->action((void*)this->"+name+",(void*)c->"+name+",0);\n");
+            }
+
+        }
+
+
+
+            result.append("}\n");
+
         result.append(Helper.genifdefbottom());
+
+
+
 
 
         FileManager.writeFile(target_path+eClass.getName()+".h",result.toString(),false);
     }
 
 
-    public StringBuilder getMethods() {
-        return methods;
-    }
+
 }

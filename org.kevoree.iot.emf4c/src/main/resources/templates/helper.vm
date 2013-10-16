@@ -1,26 +1,32 @@
+#* @vtlvariable name="baseclass" type="java.lang.String" *#
+#* @vtlvariable name="targetclass" type="java.lang.String" *#
+#* @vtlvariable name="var" type="java.lang.String" *#
 
-int addNodeContainerRoot(ContainerRoot*root,ContainerNode *val){
-if(root->nodes== NULL)
-{
-root->count_nodes=0;
-root->nodes = malloc(1*sizeof(struct ContainerNode*));
-if(root->nodes == NULL)
-{
-return ERROR;
-}
-root->nodes[root->count_nodes] =(struct ContainerNode*)val;
-root->count_nodes++;
-}
-else
-{
-root->nodes = realloc(root->nodes,(root->count_nodes+1)*sizeof(struct ContainerNode*));
-if(root->nodes == NULL)
-{
-return ERROR;
-}
-root->nodes[root->count_nodes] =(struct ContainerNode*)val;
-root->count_nodes++;
-}
 
-return OK;
+int add${baseclass}${targetclass}(${baseclass} *root,${targetclass} *val){
+    if(root->count_${var}== 0)
+    {
+        /* printf("DEBUG -- FIRST ADD ${targetclass} -> ${baseclass} %d \n",root->count_${var});  */
+        root->${var} = malloc(1*sizeof(struct ${targetclass}*));
+        if(root->${var} == NULL)
+        {
+            printf("FATAL can't allocate ${targetclass} \n");
+            return -1;
+        }
+        root->${var}[root->count_${var}] =(struct ${targetclass}*)val;
+        root->count_${var}++;
+        }
+        else
+        {
+            root->${var} = realloc(root->${var},(root->count_${var}+1)*sizeof(struct ${targetclass}*));
+            if(root->${var} == NULL)
+            {
+                printf("FATAL can't allocate ${targetclass} \n");
+                return -1;
+            }
+            root->${var}[root->count_${var}] =(struct ${targetclass}*)val;
+            root->count_${var}++;
+        }
+
+    return 0;
 }

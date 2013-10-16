@@ -12,7 +12,7 @@ package org.kevoree.iot.emf4c.utils;
 public class Helper {
 
     public static String genInclude(String name){
-        return             "#include \""+name+".h\"\n";
+        return   "#include \""+name+".h\"\n";
     }
 
     public static String genifdefheader(String name){

@@ -2,21 +2,18 @@
 #* @vtlvariable name="name" type="java.lang.String" *#
 #* @vtlvariable name="attributes" type="java.lang.String" *#
 
-
-
 ${name} * create${name}(void)
 {
     ${name} *${varname} = (${name}*)malloc(sizeof(${name}));
     if(${varname} == NULL)
     {
-        printf("ERROR malloc ${name}");
+        printf("FATAL can't allocate ${name} \n");
         return NULL;
     }
     else
     {
+        ${varname}->accept = _accept${name};
         ${attributes}
     }
+    return ${varname};
 }
-
-
-
