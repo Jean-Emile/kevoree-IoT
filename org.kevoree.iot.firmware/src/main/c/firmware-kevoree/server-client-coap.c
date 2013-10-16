@@ -9,17 +9,17 @@
 #define REST_RES_CHUNKS 0
 #define REST_RES_LEDS 0
 
-#define CHUNKS_TOTAL    2050
+#define CHUNKS_TOTAL 2050
 
 /* Defines by kYc0o */
-#define REST_RES_PUT 0
+#define REST_RES_PUT 1
 #define REST_RES_MODELS 1
-#define COAP_CLIENT_ENABLED 0
-#define MAX_KEVMOD_BODY    2048
+#define COAP_CLIENT_ENABLED 1
+#define MAX_KEVMOD_BODY 2048
 
-#define SERVER_NODE(ipaddr)   uip_ip6addr(ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0x1)
-#define LOCAL_PORT      UIP_HTONS(COAP_DEFAULT_PORT+1)
-#define REMOTE_PORT     UIP_HTONS(COAP_DEFAULT_PORT)
+#define SERVER_NODE(ipaddr) uip_ip6addr(ipaddr, 0xaaaa, 0, 0, 0, 0, 0, 0, 0x1)
+#define LOCAL_PORT UIP_HTONS(COAP_DEFAULT_PORT+1)
+#define REMOTE_PORT UIP_HTONS(COAP_DEFAULT_PORT)
 
 #include "erbium.h"
 #include "cfs/cfs.h"
@@ -35,7 +35,7 @@
 #include "er-coap-13.h"
 #include "er-coap-13-engine.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #if DEBUG
 #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINT6ADDR(addr) PRINTF("[%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x:%02x%02x]", ((uint8_t *)addr)[0], ((uint8_t *)addr)[1], ((uint8_t *)addr)[2], ((uint8_t *)addr)[3], ((uint8_t *)addr)[4], ((uint8_t *)addr)[5], ((uint8_t *)addr)[6], ((uint8_t *)addr)[7], ((uint8_t *)addr)[8], ((uint8_t *)addr)[9], ((uint8_t *)addr)[10], ((uint8_t *)addr)[11], ((uint8_t *)addr)[12], ((uint8_t *)addr)[13], ((uint8_t *)addr)[14], ((uint8_t *)addr)[15])
@@ -67,7 +67,7 @@ print_local_addresses(void)
     }
 }
 
-void
+/*void
 write_current_model(void)
 {
     int fd_write;
@@ -89,68 +89,16 @@ write_current_model(void)
     {
         PRINTF("ERROR: could not write to memory.\n");
     }
-}
+}*/
 
 static int32_t large_update_size = 0;
 static uint8_t large_update_store[MAX_KEVMOD_BODY] = {0};
 static unsigned int large_update_ct = -1;
 
-/******************************************************************************/
-#if REST_RES_CHUNKS
-/*
- * For data larger than REST_MAX_CHUNK_SIZE (e.g., stored in flash) resources must be aware of the buffer limitation
- * and split their responses by themselves. To transfer the complete resource through a TCP stream or CoAP's blockwise transfer,
- * the byte offset where to continue is provided to the handler as int32_t pointer.
- * These chunk-wise resources must set the offset value to its new position or -1 of the end is reached.
- * (The offset for CoAP's blockwise transfer can go up to 2'147'481'600 = ~2047 M for block size 2048 (reduced to 1024 in observe-03.)
- */
-RESOURCE(chunks, METHOD_GET, "test/chunks", "title=\"Blockwise demo\";rt=\"Data\"");
-
-void
-chunks_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
-{
-    int32_t strpos = 0;
-
-    /* Check the offset for boundaries of the resource data. */
-    if (*offset >= CHUNKS_TOTAL)
-    {
-        REST.set_response_status(response, REST.status.BAD_OPTION);
-        /* A block error message should not exceed the minimum block size (16). */
-
-        const char *error_msg = "BlockOutOfScope";
-        REST.set_response_payload(response, error_msg, strlen(error_msg));
-        return;
-    }
-
-    /* Generate data until reaching CHUNKS_TOTAL. */
-    while (strpos < preferred_size)
-    {
-        strpos += snprintf((char *)buffer + strpos, preferred_size-strpos+1, "|%ld|", *offset);
-    }
-
-    /* snprintf() does not adjust return value if truncated by size. */
-    if (strpos > preferred_size)
-        strpos = preferred_size;
-
-    /* Truncate if above CHUNKS_TOTAL bytes. */
-    if (*offset+(int32_t)strpos > CHUNKS_TOTAL)
-        strpos = CHUNKS_TOTAL - *offset;
-
-    REST.set_response_payload(response, buffer, strpos);
-
-    /* IMPORTANT for chunk-wise resources: Signal chunk awareness to REST engine. */
-    *offset += strpos;
-
-    /* Signal end of resource representation. */
-    if (*offset >= CHUNKS_TOTAL)
-        *offset = -1;
-}
-#endif
-
 #if REST_RES_MODELS
 /*
- * Resource for GET and PUT models in .kev format (text or bytes)
- */
+* Resource for GET and PUT models in .kev format (text or bytes)
+*/
 
 RESOURCE(models, METHOD_GET | METHOD_PUT, "models", "tile=\"GET: ?modelname=\"model_name.kev\" /, Kevoree Model\"; rt=\"Control & Data\"");
 
@@ -319,67 +267,96 @@ models_handler(void* request, void* response, uint8_t *buffer, uint16_t preferre
         {
             PRINTF("Method PUT\nmodel name: %.*s\n", len, modelname);
             int fd_write = 0;
+            int fd_read = 0;
             int n = 0;
-            const char *filename = "current.kev";
+            char *filename = "current.kev";
             uint8_t *incoming = NULL;;
-            size_t len2 = 0;
+            /*size_t len2 = 0;*/
             /*unsigned int ct = REST.get_header_content_type(request);
 
-	        if (ct==-1)
-	        {
-	            REST.set_response_status(response, REST.status.BAD_REQUEST);
-	            const char *error_msg = "NoContentType";
-	            REST.set_response_payload(response, error_msg, strlen(error_msg));
-	            PRINTF("ERROR: No content type.\n");
-	            return;
-	        }*/
+            if (ct==-1)
+            {
+                REST.set_response_status(response, REST.status.BAD_REQUEST);
+                const char *error_msg = "NoContentType";
+                REST.set_response_payload(response, error_msg, strlen(error_msg));
+                PRINTF("ERROR: No content type.\n");
+                return;
+            }*/
+            if (pref_size != 0 && coap_req->block1_num == 0)
+            {
+                fd_read = cfs_open(filename, CFS_READ);
 
-	        if ((len = REST.get_request_payload(request, (const uint8_t **) &incoming)))
-	        {
-		        /*if ((len2 = REST.get_query_variable(request, "modelname", &filename)))
-		        {
-			        PRINTF("File name %.*s\n", len2, filename);
+                if (fd_read == -1)
+                {
+                    PRINTF("File can be written\n");
+                }
+                else
+                {
+                    cfs_remove(filename);
+                    fd_read = cfs_open(filename, CFS_READ);
+                    if (fd_read == -1)
+                    {
+                        PRINTF("file has been removed.\n");
+                    }
+                    else
+                    {
+                        PRINTF("ERROR: could read from memory, file exists.\n");
+                        cfs_close(fd_read);
+                    }
+                }
+            }
+
+            if ((len = REST.get_request_payload(request, (const uint8_t **) &incoming)))
+            {
+                /*if ((len2 = REST.get_query_variable(request, "modelname", &filename)))
+                {
+                    PRINTF("File name %.*s\n", len2, filename);
                 }*/
 
-	            if (coap_req->block1_num*coap_req->block1_size+len <= sizeof(large_update_store))
-	            {
-	                if (coap_req->block1_num == 0)
-		                fd_write = cfs_open(filename, CFS_WRITE);
-		            else
-		                fd_write = cfs_open(filename, CFS_WRITE | CFS_APPEND);
-		            /*memcpy(large_update_store+coap_req->block1_num*coap_req->block1_size, incoming, len);*/
-		            if(fd_write != -1)
-		            {
-			            n = cfs_write(fd_write, incoming, len);
-			            cfs_close(fd_write);
-			            PRINTF("Successfully appended data to cfs. wrote %i bytes\n", n);
-		            }
-		            else
-		            {
-		                PRINTF("ERROR: could not write to memory \n");
-		            }
-	                large_update_size = coap_req->block1_num*coap_req->block1_size+len;
-	                large_update_ct = REST.get_header_content_type(request);
+                if (coap_req->block1_num*coap_req->block1_size+len <= sizeof(large_update_store))
+                {
+                    if (coap_req->block1_num == 0)
+                        fd_write = cfs_open(filename, CFS_WRITE);
+                    else
+                        fd_write = cfs_open(filename, CFS_WRITE | CFS_APPEND);
+                    /*memcpy(large_update_store+coap_req->block1_num*coap_req->block1_size, incoming, len);*/
+                    if(fd_write != -1)
+                    {
+                        n = cfs_write(fd_write, incoming, len);
+                        cfs_close(fd_write);
+                        PRINTF("Successfully appended data to cfs. wrote %i bytes\n", n);
+                    }
+                    else
+                    {
+                        REST.set_response_status(response, REST.status.BAD_OPTION);
+                        /* A block error message should not exceed the minimum block size (16). */
+                        const char *error_msg = "CannotWriteCFS";
+                        REST.set_response_payload(response, error_msg, strlen(error_msg));
+                        PRINTF("ERROR: could not write to memory \n");
+                        return;
+                    }
+                    large_update_size = coap_req->block1_num*coap_req->block1_size+len;
+                    large_update_ct = REST.get_header_content_type(request);
 
                     REST.set_response_status(response, REST.status.CHANGED);
                     coap_set_header_block1(response, coap_req->block1_num, 0, coap_req->block1_size);
 
                     PRINTF("Chunk num. : %ld Size: %d \n", coap_req->block1_num, coap_req->block1_size);
                 }
-	            else
-	            {
-	                REST.set_response_status(response, REST.status.REQUEST_ENTITY_TOO_LARGE);
-	                REST.set_response_payload(response, buffer, snprintf((char *)buffer, REST_MAX_CHUNK_SIZE, "%uB max.", sizeof(large_update_store)));
-	                return;
-	            }
-	        }
-	        else
-	        {
-	            REST.set_response_status(response, REST.status.BAD_REQUEST);
-	            const char *error_msg = "NoPayload";
-	            REST.set_response_payload(response, error_msg, strlen(error_msg));
-	            return;
-	        }
+                else
+                {
+                    REST.set_response_status(response, REST.status.REQUEST_ENTITY_TOO_LARGE);
+                    REST.set_response_payload(response, buffer, snprintf((char *)buffer, REST_MAX_CHUNK_SIZE, "%uB max.", sizeof(large_update_store)));
+                    return;
+                }
+            }
+            else
+            {
+                REST.set_response_status(response, REST.status.BAD_REQUEST);
+                const char *error_msg = "NoPayload";
+                REST.set_response_payload(response, error_msg, strlen(error_msg));
+                return;
+            }
         }
     }
     else
@@ -396,71 +373,89 @@ models_handler(void* request, void* response, uint8_t *buffer, uint16_t preferre
 
 #if REST_RES_PUT
 /*
- * PUT in flash new application modules
+* PUT in flash new application modules
 */
 RESOURCE(putData, METHOD_PUT, "data", "tile=\"ELF MODULE: ?filename='filename.ce', PUT APPLICATION/OCTET_STREAM\"; rt=\"Control\"");
 
 void
 putData_handler(void* request, void* response, uint8_t *buffer, uint16_t preferred_size, int32_t *offset)
 {
-	coap_packet_t *const coap_req = (coap_packet_t *) request;
+    coap_packet_t *const coap_req = (coap_packet_t *) request;
     int fd_write = 0;
+    /*int fd_read = 0;*/
     int n = 0;
-    const char *filename;
-	uint8_t *incoming = NULL;
-	size_t len = 0;
-	size_t len2 = 0;
+    const char *file_name;
+    char *filename = NULL;
+    uint8_t *incoming = NULL;
+    size_t len = 0;
+    size_t len2 = 0;
 
-	/*PRINTF("Entering to handler \n");*/
+    /*PRINTF("Entering to handler \n");*/
 
-	unsigned int ct = REST.get_header_content_type(request);
-	if (ct==-1){
-	   REST.set_response_status(response, REST.status.BAD_REQUEST);
-	   const char *error_msg = "NoContentType";
-	   REST.set_response_payload(response, error_msg, strlen(error_msg));
-	   return;
-	}
+    /*unsigned int ct = REST.get_header_content_type(request);
+    if (ct==-1)
+    {
+        REST.set_response_status(response, REST.status.BAD_REQUEST);
+        const char *error_msg = "NoContentType";
+        REST.set_response_payload(response, error_msg, strlen(error_msg));
+        return;
+    }*/
 
-	if ((len = REST.get_request_payload(request, (const uint8_t **) &incoming)))
-	{
-		if (len2=REST.get_query_variable(request, "filename", &filename)){
-			PRINTF("File name %.*s\n", len2, filename);
+    if ((len = REST.get_request_payload(request, (const uint8_t **) &incoming)))
+    {
+        if ((len2=REST.get_query_variable(request, "filename", &file_name)))
+        {
+            /*PRINTF("File name: %.*s\n", len2, file_name);*/
+            filename = malloc(len2 + 1);
+            snprintf(filename, len2 + 1, file_name);
+            PRINTF("filename : %s size : %d\n", filename, len2);
+        }
 
-		}
+        if (coap_req->block1_num*coap_req->block1_size+len <= sizeof(large_update_store))
+        {
+            if (coap_req->block1_num == 0)
+                fd_write = cfs_open(filename, CFS_WRITE);
+            else
+                fd_write = cfs_open(filename, CFS_WRITE | CFS_APPEND);
+            /*memcpy(large_update_store+coap_req->block1_num*coap_req->block1_size, incoming, len);*/
+            if(fd_write != -1)
+            {
+                n = cfs_write(fd_write, incoming, len);
+                cfs_close(fd_write);
+                free(filename);
+                PRINTF("Successfully appended data to cfs. wrote %i bytes\n", n);
+            }
+            else
+            {
+                REST.set_response_status(response, REST.status.BAD_OPTION);
+                /* A block error message should not exceed the minimum block size (16). */
+                const char *error_msg = "CannotWriteCFS";
+                REST.set_response_payload(response, error_msg, strlen(error_msg));
+                PRINTF("ERROR: could not write to memory \n");
+                return;
+            }
+            large_update_size = coap_req->block1_num*coap_req->block1_size+len;
+            large_update_ct = REST.get_header_content_type(request);
 
-	  if (coap_req->block1_num*coap_req->block1_size+len <= sizeof(large_update_store))
-	  {
-		fd_write = cfs_open(filename, CFS_WRITE | CFS_APPEND);
-		/*memcpy(large_update_store+coap_req->block1_num*coap_req->block1_size, incoming, len);*/
-		if(fd_write != -1) {
-			n = cfs_write(fd_write, incoming, len);
-			cfs_close(fd_write);
-			PRINTF("Successfully appended data to cfs. wrote %i bytes\n", n);
-		} else {
-		    PRINTF("ERROR: could not write to memory \n");
-		}
-	    large_update_size = coap_req->block1_num*coap_req->block1_size+len;
-	    large_update_ct = REST.get_header_content_type(request);
+            REST.set_response_status(response, REST.status.CHANGED);
+            coap_set_header_block1(response, coap_req->block1_num, 0, coap_req->block1_size);
 
-        REST.set_response_status(response, REST.status.CHANGED);
-        coap_set_header_block1(response, coap_req->block1_num, 0, coap_req->block1_size);
-
-        PRINTF("Chunk num. : %ld Size: %d \n", coap_req->block1_num, coap_req->block1_size);
-      }
-	  else
-	  {
-	    REST.set_response_status(response, REST.status.REQUEST_ENTITY_TOO_LARGE);
-	    REST.set_response_payload(response, buffer, snprintf((char *)buffer, REST_MAX_CHUNK_SIZE, "%uB max.", sizeof(large_update_store)));
-	    return;
-	  }
-	}
-	else
-	{
-	  REST.set_response_status(response, REST.status.BAD_REQUEST);
-	  const char *error_msg = "NoPayload";
-	  REST.set_response_payload(response, error_msg, strlen(error_msg));
-	  return;
-	}
+            PRINTF("Chunk num. : %ld Size: %d \n", coap_req->block1_num, coap_req->block1_size);
+        }
+        else
+        {
+            REST.set_response_status(response, REST.status.REQUEST_ENTITY_TOO_LARGE);
+            REST.set_response_payload(response, buffer, snprintf((char *)buffer, REST_MAX_CHUNK_SIZE, "%uB max.", sizeof(large_update_store)));
+            return;
+        }
+    }
+    else
+    {
+        REST.set_response_status(response, REST.status.BAD_REQUEST);
+        const char *error_msg = "NoPayload";
+        REST.set_response_payload(response, error_msg, strlen(error_msg));
+        return;
+    }
 }
 
 #endif
@@ -534,10 +529,24 @@ client_chunk_handler(void *response)
 PROCESS_THREAD(kevoree_runtime, ev, data)
 {
     const char *name = "current.kev";
+    const char *name2 = "hello-world.ce";
     int fd_read = 0;
 
     cfs_remove(name);
+    cfs_remove(name2);
     fd_read = cfs_open(name, CFS_READ);
+
+    if (fd_read == -1)
+    {
+        PRINTF("Successfully removed file\n");
+    }
+    else
+    {
+        PRINTF("ERROR: could read from memory, file still exists.\n");
+        cfs_close(fd_read);
+    }
+
+    fd_read = cfs_open(name2, CFS_READ);
 
     if (fd_read == -1)
     {
@@ -588,49 +597,6 @@ PROCESS_THREAD(kevoree_runtime, ev, data)
 #endif
 #endif /* PLATFORM_HAS_LEDS */
 
-/* Store dummy current model in filesystem */
-    /*char *filename = "current.kev";
-    int fd_write;
-    int m = 0;
-    char current_model[220];
-
-    strcpy(current_model, "node0:uKevoreeNode@{\
-    pin:period:serialport,DigitalLight:Timer:LocalChannel:SerialCT,on:off:toggle:flash:tick/\
-    1:L1:2/\
-    1:S1:3:2=devttyUSB0/\
-    1:T1:1:1=1000/\
-    1:D1:0:0=13/1:T2:1:1=1000/\
-    3:T1:L1:4/\
-    3:D1:L1:3/\
-    3:T2:S1:4/\
-    0:S1:2=39/\
-    }");*/
-
-    /*char current_model = "node0:uKevoreeNode@{\
-        pin:period:serialport,DigitalLight:Timer:LocalChannel:SerialCT,on:off:toggle:flash:tick/\
-        1:L1:2/\
-        1:S1:3:2=devttyUSB0/\
-        1:T1:1:1=1000/\
-        1:D1:0:0=13/1:T2:1:1=1000/\
-        3:T1:L1:4/\
-        3:D1:L1:3/\
-        3:T2:S1:4/\
-        0:S1:2=39/\
-        }";*/
-
-    /*fd_write = cfs_open(filename, CFS_WRITE);
-
-    if (fd_write != -1)
-    {
-        m = cfs_write(fd_write, current_model, sizeof(current_model));
-        cfs_close(fd_write);
-        printf("current_model successfully written to cfs. wrote %i bytes\n", m);
-    }
-    else
-    {
-        printf("ERROR: could not write to memory in step 2.\n");
-    }*/
-
   /* Define application-specific events here. */
     while(1)
     {
@@ -648,8 +614,8 @@ PROCESS_THREAD(kevoree_runtime, ev, data)
 
 
 /* TODO call maven resolver paramètres const char*group,const char *group,const char *ext,const const char *urls[]
- * copy in file system the file
- */
+* copy in file system the file
+*/
             printf("--Requesting /mavenresolver?group=org.kevoree.helloworld&name=hello_world&version=1.0&extension=.ce\n");
             /*printf("--Requesting /helloWorld\n");*/
 
@@ -667,4 +633,3 @@ PROCESS_THREAD(kevoree_runtime, ev, data)
 
   PROCESS_END();
 }
-
