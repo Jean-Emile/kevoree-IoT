@@ -17,9 +17,11 @@
 
     <modules>
         <module>./org.kevoree.iot.coap</module>
-        <module>./org.kevoree.iot.modelTransform</module>
+        <module>./org.kevoree.iot.marShellContikiTransform</module>
         <module>./org.kevoree.iot.firmware</module>
         <module>./org.kevoree.iot.contikiNode</module>
+        <module>./org.kevoree.iot.fake</module>
+        <module>./org.kevoree.iot.emf4c</module>
     </modules>
 
     <licenses>
