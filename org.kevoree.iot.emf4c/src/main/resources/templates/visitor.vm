@@ -1,3 +1,25 @@
-#* @vtlvariable name="name" type="java.lang.String" *#
-#* @vtlvariable name="type" type="java.lang.String" *#
-visitor->action(this->${name},c->${name},${type});
+#* @vtlvariable name="var_s" type="java.lang.String" *#
+#* @vtlvariable name="var_name" type="java.lang.String" *#
+#* @vtlvariable name="var_type" type="java.lang.String" *#
+#* @vtlvariable name="id" type="java.lang.String" *#
+#* @vtlvariable name="structname" type="java.lang.String" *#
+
+if(${var_s}->${var_name} != NULL){
+    m_s = (hashmap_map*) ${var_s}->${var_name};
+    for(i = 0; i< m_s->table_size; i++)
+    {
+        if(m_s->data[i].in_use != 0) {
+        ${var_type} *s = m_s->data[i].data;
+        if(parent == NULL){
+            sprintf(path,"${var_name}[%s]",m_s->data[i].key);
+        }else {
+            sprintf(path,"%s/${var_name}[%s]",parent,m_s->data[i].key);
+        }
+
+
+        s->accept(s,path,visitor);
+        }
+    }
+}
+
+

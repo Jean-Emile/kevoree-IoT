@@ -1,0 +1,37 @@
+
+
+
+void* findbyPath(char *path){
+    char * pch;
+    pch = strtok (path,"/");
+    int parse=0;
+    char *queryID=NULL;
+    char *relationName=NULL;
+
+    while (pch != NULL)
+    {
+
+        if(parse == 0){
+
+            int i =indexOf(pch,"[")+2;
+            int y =lastIndexOf(pch,"]")-i+1;
+
+            relationName  =  substring(pch,0,i-2);
+            queryID =  substring(pch,i,y);
+             if(strcmp(relationName,"")){
+
+             }
+
+            parse = 1;
+        }else
+        {
+            if(indexOf(pch,"[") == -1){
+            printf (" attribute --> %s\n",pch);
+
+            }
+
+        }
+
+    pch = strtok (NULL, "/");
+    }
+}

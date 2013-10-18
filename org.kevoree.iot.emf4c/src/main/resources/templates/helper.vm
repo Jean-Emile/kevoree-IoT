@@ -1,32 +1,40 @@
 #* @vtlvariable name="baseclass" type="java.lang.String" *#
 #* @vtlvariable name="targetclass" type="java.lang.String" *#
 #* @vtlvariable name="var" type="java.lang.String" *#
+#* @vtlvariable name="id" type="java.lang.String" *#
 
 
-int add${baseclass}${targetclass}(${baseclass} *root,${targetclass} *val){
-    if(root->count_${var}== 0)
+int add${baseclass}${targetclass}(${baseclass} *root,${targetclass} *val)
+{
+    if(root->${var}== NULL)
     {
-        /* printf("DEBUG -- FIRST ADD ${targetclass} -> ${baseclass} %d \n",root->count_${var});  */
-        root->${var} = malloc(1*sizeof(struct ${targetclass}*));
+        root->${var} = hashmap_new();
         if(root->${var} == NULL)
         {
-            printf("FATAL can't allocate ${targetclass} \n");
+            printf("FATAL ALLOCATE HASHMAP ${targetclass} \n");
             return -1;
         }
-        root->${var}[root->count_${var}] =(struct ${targetclass}*)val;
-        root->count_${var}++;
-        }
-        else
-        {
-            root->${var} = realloc(root->${var},(root->count_${var}+1)*sizeof(struct ${targetclass}*));
-            if(root->${var} == NULL)
-            {
-                printf("FATAL can't allocate ${targetclass} \n");
-                return -1;
-            }
-            root->${var}[root->count_${var}] =(struct ${targetclass}*)val;
-            root->count_${var}++;
-        }
+    }
+    if(hashmap_put(root->${var},val->${id},val) != MAP_OK)
+    {
+        printf("ERROR ADD  ${targetclass} \n");
+    }
 
     return 0;
+}
+
+
+${targetclass}* findByID${baseclass}${targetclass}(${baseclass} *root,void *id)
+{
+    if(root->${var}!= NULL)
+    {
+        ${targetclass}  *result=NULL;
+        if(hashmap_get(root->${var},id, (void**)(&result)) == MAP_OK){
+            return result;
+        }
+         return NULL;
+    }else
+    {
+        return NULL;
+    }
 }

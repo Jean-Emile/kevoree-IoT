@@ -7,7 +7,7 @@
 int compare${name}(${name} *${var_s},${name} *${var_t})
 {
    if(${var_s} == NULL || ${var_t} == NULL){
-    return 0;
+     return 0;
     }
    ${compare_attributes}
     ${compare_struct}
