@@ -27,7 +27,7 @@ public class DefaultFactoryGenerator {
     private VelocityEngine ve = new VelocityEngine();
     private Template template_factory;
     private Template template_helper;
-    StringWriter gen_template = new StringWriter();
+    private StringWriter gen_template = new StringWriter();
 
 
     public DefaultFactoryGenerator(){
@@ -50,17 +50,21 @@ public class DefaultFactoryGenerator {
             if(eAttribute.getEAttributeType().getName().equals("EInt")){
                 init_attributes.append(varname+"->"+eAttribute.getName()+"=0;\n");
             } else if(!eAttribute.getEAttributeType().getName().equals("EString")){
-
                 init_attributes.append(varname+"->"+eAttribute.getName()+"=NULL;\n");
             }
         }
 
+         String id="";
 
-        for( EReference eReference : eClass.getEAllReferences() ){
+        for( EReference eReference : eClass.getEAllReferences() )
+        {
 
+            if(eReference.getEReferenceType().getEIDAttribute() != null)
+            {
+                 id=eReference.getEReferenceType().getEIDAttribute().getName();
+            }
             if(eReference.getUpperBound() == -1)
             {
-                init_attributes.append(varname+"->count_"+eReference.getName()+"=0;\n");
 
                 VelocityContext helper_context = new VelocityContext();
                 String ref_name =     eReference.getName();
@@ -70,6 +74,8 @@ public class DefaultFactoryGenerator {
                 helper_context.put("baseclass",baseclass);
                 helper_context.put("targetclass",ref_type);
                 helper_context.put("var",ref_name);
+                helper_context.put("id", id);
+
 
                 template_helper.merge(helper_context, gen_template);
 
@@ -78,14 +84,14 @@ public class DefaultFactoryGenerator {
 
         }
 
-
-
         factory_context.put("name", baseclass);
         factory_context.put("attributes", init_attributes);
         factory_context.put("varname", varname);
 
 
         template_factory.merge(factory_context, gen_template);
+
+
 
        // System.out.println(gen_template);
     }

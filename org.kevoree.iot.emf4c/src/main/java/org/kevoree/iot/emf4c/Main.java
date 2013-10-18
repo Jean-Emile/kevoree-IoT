@@ -1,6 +1,7 @@
 package org.kevoree.iot.emf4c;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Iterator;
 
 /**
@@ -29,6 +30,13 @@ import org.kevoree.iot.emf4c.utils.Helper;
 public class Main {
 
 
+    public static void copyLib(String source,String name,String targetpath){
+        try {
+            FileManager.copyFileFromStream(DefaultFactoryGenerator.class.getClassLoader().getResourceAsStream(source),targetpath,name,true);
+        } catch (IOException e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
 
     public static void main(String[] args) throws Exception {
 
@@ -75,17 +83,22 @@ public class Main {
                 package_name =     ((EPackage) eo).getNsPrefix();
                 factory.setPackage_name(package_name);
 
-                System.out.println(((EClassImpl)EcoreUtil.getRootContainer(eo).eContents().get(0)).getName());
+              //  System.out.println(((EClassImpl)EcoreUtil.getRootContainer(eo).eContents().get(0)).getName());
 
             }
 
         }
 
         // create
+
+        copyLib("templates/tools.h","tools.h",targetpath);
+        copyLib("templates/HashMap.h","HashMap.h",targetpath);
+
         FileManager.writeFile(targetpath+"Compare"+package_name+".h",compareGenerator.getheader()+"\n"+compareGenerator.getbody().toString(),false);
 
         FileManager.writeFile(targetpath+package_name+".h",list_file_h.toString(),false);
-        FileManager.copyFileFromStream(DefaultFactoryGenerator.class.getClassLoader().getResourceAsStream("templates/tools.h"),targetpath,"tools.h",true);
+
+
         FileManager.writeFile(targetpath+"DefaultFactory"+package_name+".h",factory.getFactory().toString(),false);
 
 
